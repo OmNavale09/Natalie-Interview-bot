@@ -61,27 +61,6 @@ Respond with ONLY this JSON structure (no markdown, no code blocks, no extra tex
 }}
 Be specific - reference ACTUAL things they said during the interview."""
 
-def get_feedback():
-    """Generate detailed interview feedback"""
-    config = {"configurable": {"thread_id": thread_id}}
-    response = agent.invoke({
-        "messages": [
-        {
-            "role": "user", 
-            "content": f"{FEEDBACK_PROMPT}\n\nReview our complete {current_subject} interview conversation and provide detailed feedback."
-        }
-        ]
-    }, config=config)
-    text = response["messages"][-1].text
-    print(f"\n[Feedback Generated]\n{text}\n")
-    cleaned = text.strip()
-    if "```" in cleaned:
-        cleaned = cleaned.split("```")[1].replace("json", "").strip()
-    feedback = json.loads(cleaned)
-
-    return jsonify({"success": True, "feedback": feedback})
-
-
 app = Flask(__name__)
 CORS(app, expose_headers=['X-Question-Number'])
 
@@ -168,16 +147,7 @@ def submit_answer():
    
     agent.invoke({"messages": [{"role": "user", "content": answer}]}, config=config)
 
-
     question_count += 1
-
-    if(question_count == 6):
-        feedback = get_feedback()
-
-        return {
-            "status": "completed",
-            "feedback": feedback
-        }, 200
 
 
     prompt = f"""The candidate just answered question {question_count - 1}.
@@ -202,8 +172,25 @@ def submit_answer():
     )
 
 @app.route("/get-feedback", methods=["POST"])
-def generate_feedback():
-    feedback = get_feedback()
-    return {"feedback": feedback}, 200
+def get_feedback():
+    """Generate detailed interview feedback"""
+    config = {"configurable": {"thread_id": thread_id}}
+    response = agent.invoke({
+        "messages": [
+        {
+            "role": "user", 
+            "content": f"{FEEDBACK_PROMPT}\n\nReview our complete {current_subject} interview conversation and provide detailed feedback."
+        }
+        ]
+    }, config=config)
+    text = response["messages"][-1].text
+    print(f"\n[Feedback Generated]\n{text}\n")
+    cleaned = text.strip()
+    if "```" in cleaned:
+        cleaned = cleaned.split("```")[1].replace("json", "").strip()
+    feedback = json.loads(cleaned)
+
+    return jsonify({"success": True, "feedback": feedback})
+
 
 app.run(debug=True, port=5000)
